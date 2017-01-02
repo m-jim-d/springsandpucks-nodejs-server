@@ -8,6 +8,7 @@ app.get('/', function(req, res){
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+const port = process.env.PORT || 3000;
 
 app.get('/', function(req, res){
    // In a browser, if you set url to localhost:3000, you'll get this page:
@@ -124,7 +125,7 @@ io.on('connection', function(socket){
    
 });
 
-http.listen(process.env.PORT, function(){
-   console.log('listening on *:' + process.env.PORT);
+http.listen(port, function(){
+   console.log('listening on *:' + port);
 });
 

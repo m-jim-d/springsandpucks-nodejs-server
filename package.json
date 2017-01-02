@@ -1,9 +1,12 @@
 {
   "name": "node-socket-PET",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "PET, node.js with socket.io.",
   "engines": {
     "node": "6.9.1"
+  },
+  "scripts": {
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.10.2",
