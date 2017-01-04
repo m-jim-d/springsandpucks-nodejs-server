@@ -18,13 +18,17 @@ app.get('/', function(req, res){
 // Put various client data and maps in a global.
 var cD = {};
 cD.userCount = 0;
-// Map: userName[id]
+
+// Map: userName[ socket.id]
 cD.userName = {};
-// Map: id[userName]
+
+// Map: id[ cD.userName]
 cD.id = {};
-// Map: room[id]
+
+// Map: room[ socket.id]
 cD.room = {};
-// Map: hostID[roomName]
+
+// Map: hostID[ cD.room]
 cD.hostID = {};
 
 
@@ -121,6 +125,16 @@ io.on('connection', function(socket){
       var hostID = cD.hostID[ cD.room[ socket.id]];
       io.to( hostID).emit('chat message', message);
       io.to( hostID).emit('client-disconnected', cD.userName[ socket.id]);
+      
+      // Remove this user from the maps.
+      
+      delete cD.id[ cD.userName[ socket.id]];
+      delete cD.userName[ socket.id];
+      // If this is the host disconnecting
+      if (cD.hostID[ cD.room[ socket.id]] == socket.id){
+         delete cD.hostID[ cD.room[ socket.id]];
+      }
+      delete cD.room[ socket.id];
    });
    
 });
