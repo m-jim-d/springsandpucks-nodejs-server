@@ -50,6 +50,13 @@ io.on('connection', function(socket){
    
    // Now set up the various listeners.
    
+   
+   // Echo test...
+   socket.on('echo-send-from-client', function(msg){
+      io.to(socket.id).emit('echo-back-from-server', 'message...');
+   });
+   
+   
    // Broadcast the incoming chat messages that come in.
    socket.on('chat message', function(msg){
       //console.log('message: ' + JSON.parse(msg).text);
