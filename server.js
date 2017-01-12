@@ -54,8 +54,8 @@ io.on('connection', function(socket){
    // Echo test...
    socket.on('echo-from-Client-to-Server', function(msg){
       if (msg == 'server'){
-         // This bounces off the server and goes right back to the client.
-         io.to(socket.id).emit('echo-from-Server-to-Client', 'a bounce off the node server');
+         // This bounces off the SERVER and goes right back to the client.
+         io.to(socket.id).emit('echo-from-Server-to-Client', 'server');
          
       } else if (msg == 'host'){
          // Send this first to the host (the scenic route). Include the id of the client so that we know where to send it
@@ -64,14 +64,11 @@ io.on('connection', function(socket){
       }
       
    });
-   
    socket.on('echo-from-Host-to-Server', function(msg){
       var socket_id = msg;
-      // Now that this has come back from the host, complete the trip and send this to the originating client.
-      io.to(socket_id).emit('echo-from-Server-to-Client', 'a bounce off the host');
+      // Now that this has come back from the HOST, complete the trip and send this to the originating client.
+      io.to(socket_id).emit('echo-from-Server-to-Client', 'host');
    });
-   
-   
    
    
    // Broadcast the incoming chat messages that come in.
