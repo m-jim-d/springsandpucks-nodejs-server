@@ -11,8 +11,8 @@ var io = require('socket.io')(http);
 const port = process.env.PORT || 3000;
 
 app.get('/', function(req, res){
-   // In a browser, if you set url to localhost:3000, you'll get this page:
-   //res.sendfile('indexCanvas.html');
+   // In a browser, if you set the URL to localhost:3000, you'll get this page:
+   res.sendfile('links.html');
 });
 
 // Put various client data and maps in a global.
