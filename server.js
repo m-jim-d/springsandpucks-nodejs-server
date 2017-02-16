@@ -1,9 +1,6 @@
+// Node Server Script
 
-/*
-app.get('/', function(req, res){
-  res.send('<h1>Hello world (new one, BBBCCC DDD)</h1>');
-});
-*/
+// Author: James D. Miller
 
 var app = require('express')();
 var http = require('http').Server(app);
@@ -17,31 +14,31 @@ app.get('/', function(req, res){
 
 // Put various client data and maps in a global.
 var cD = {};
-cD.userCount = 0;
+cD.userIndex = 0;
 
 // Map: userName[ socket.id]
 cD.userName = {};
 
-// Map: id[ cD.userName]
+// Map: id[ userName]
 cD.id = {};
 
 // Map: room[ socket.id]
 cD.room = {};
 
-// Map: hostID[ cD.room]
+// Map: hostID[ roomName]
 cD.hostID = {};
 
 
 io.on('connection', function(socket){
    
-   cD.userCount += 1;
+   cD.userIndex += 1;
    console.log('');
-   console.log('Their count=' + io.engine.clientsCount + ', my count=' + cD.userCount + '.');
+   console.log('Their count=' + io.engine.clientsCount + ', my index=' + cD.userIndex + '.');
    
    // Two maps
    // First, name this user.
-   cD.userName[socket.id] = 'u' + cD.userCount;
-   cD.id['u' + cD.userCount] = socket.id;
+   cD.userName[socket.id] = 'u' + cD.userIndex;
+   cD.id['u' + cD.userIndex] = socket.id;
    
    console.log('New client: '+ cD.userName[socket.id] +', '+ socket.id + '.');
    
@@ -137,26 +134,69 @@ io.on('connection', function(socket){
          io.to(socket.id).emit('chat message', 'You are the host of room ' + cD.room[ socket.id] + '.');
       }
    });
-      
+   
+   // This "disconnect" event is fired by the server.
    socket.on('disconnect', function(){
-      //cD.userCount -= 1;
+      if (cD.userName[ socket.id]) {
+         // Report at the server.
+         console.log(' ');
+         var message = cD.userName[ socket.id] + ' has disconnected';
+         
+         console.log( message + ' (by self, '+socket.id+').');
+         
+         // Report to the room host.
+         var hostID = cD.hostID[ cD.room[ socket.id]];
+         io.to( hostID).emit('chat message', message+'.');
+         io.to( hostID).emit('client-disconnected', cD.userName[ socket.id]);
+         
+         // Remove this user from the maps.
+         delete cD.id[ cD.userName[ socket.id]];
+         delete cD.userName[ socket.id];
+         // If this is the host disconnecting
+         if (hostID == socket.id){
+            delete cD.hostID[ cD.room[ socket.id]];
+         }
+         delete cD.room[ socket.id];
+      }
+   });
+   
+   socket.on('clientDisconnectByHost', function(msg){
+      var clientName = msg;
+      var clientID = cD.id[ clientName];
+      
+      // Send disconnect message to the client.
+      io.to(clientID).emit('disconnectByServer', clientName);
+      
+      // Don't do the following. It will disconnect the host socket. Not what we want here!
+      //socket.disconnect();
+   });
+   
+   socket.on('okDisconnectMe', function(msg){
+      // This event indicated the non-host client got the clientDisconnectByHost message (see above) and
+      // agrees to go peacefully.
+      var clientName = msg;
+      var clientID = cD.id[ clientName];
+      
+      // Report this at the server.
       console.log(' ');
-      var message = cD.userName[ socket.id] + ' has disconnected.';
-      console.log( message);
-      var hostID = cD.hostID[ cD.room[ socket.id]];
+      var message = clientName + ' has disconnected';
+      //if (clientName)
+      console.log( message + ' (by host, '+clientID+').');
+      
+      // Report to the room host.
+      var hostID = cD.hostID[ cD.room[ clientID]];
       io.to( hostID).emit('chat message', message);
-      io.to( hostID).emit('client-disconnected', cD.userName[ socket.id]);
+      io.to( hostID).emit('client-disconnected', clientName);
       
       // Remove this user from the maps.
+      delete cD.id[ cD.userName[ clientID]];
+      delete cD.userName[ clientID];
+      delete cD.room[ clientID];
       
-      delete cD.id[ cD.userName[ socket.id]];
-      delete cD.userName[ socket.id];
-      // If this is the host disconnecting
-      if (cD.hostID[ cD.room[ socket.id]] == socket.id){
-         delete cD.hostID[ cD.room[ socket.id]];
-      }
-      delete cD.room[ socket.id];
+      //Finally, go ahead and disconnect this client's socket.
+      socket.disconnect();
    });
+
    
 });
 
