@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "PET, node.js with socket.io.",
   "engines": {
-    "node": "6.9.1"
+    "node": "8.1.4"
   },
   "scripts": {
     "start": "node server.js"

@@ -1,6 +1,6 @@
 // Node Server Script
 // Version 1.0
-// Author: James D. Miller
+// Written by: James D. Miller
 
 var app = require('express')();
 var http = require('http').Server(app);
