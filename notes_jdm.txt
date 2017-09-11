@@ -1,0 +1,3 @@
+To check how many free dyno hours are left in this month, from Git CMD:
+
+heroku ps -a secure-retreat-15768
