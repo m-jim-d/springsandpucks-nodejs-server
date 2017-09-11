@@ -1,13 +1,13 @@
 // Node Server Script
-// Version 1.01 (10:44 PM Wed August 30, 2017)
-// Written by: James D. Miller
+// Version 1.0
+// Author: James D. Miller
 
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 const port = process.env.PORT || 3000;
 
-app.get('/', function(req, res) {
+app.get('/', function(req, res){
    // In a browser, if you set the URL to localhost:3000, you'll get this page:
    res.sendfile('links.html');
 });
@@ -29,7 +29,7 @@ cD.room = {};
 cD.hostID = {};
 
 
-io.on('connection', function(socket) {
+io.on('connection', function(socket){
    
    cD.userIndex += 1;
    console.log('');
@@ -45,23 +45,23 @@ io.on('connection', function(socket) {
    // Tell the new user their network name.
    io.to(socket.id).emit('your name is', cD.userName[socket.id]);
    
-   // Now set up the various listeners. I know this seems a little odd, but these listeners
-   // need to be defined each time this connection event fires, i.e. for each socket.
+   // Now set up the various listeners.
+   
    
    // Echo test...
-   socket.on('echo-from-Client-to-Server', function(msg) {
-      if (msg == 'server') {
+   socket.on('echo-from-Client-to-Server', function(msg){
+      if (msg == 'server'){
          // This bounces off the SERVER and goes right back to the client.
          io.to(socket.id).emit('echo-from-Server-to-Client', 'server');
          
-      } else if (msg == 'host') {
+      } else if (msg == 'host'){
          // Send this first to the host (the scenic route). Include the id of the client so that we know where to send it
          // when it bounces off the host.
          io.to( cD.hostID[ cD.room[ socket.id]]).emit('echo-from-Server-to-Host', socket.id);
       }
       
    });
-   socket.on('echo-from-Host-to-Server', function(msg) {
+   socket.on('echo-from-Host-to-Server', function(msg){
       var socket_id = msg;
       // Now that this has come back from the HOST, complete the trip and send this to the originating client.
       io.to(socket_id).emit('echo-from-Server-to-Client', 'host');
@@ -69,7 +69,7 @@ io.on('connection', function(socket) {
    
    
    // Broadcast the incoming chat messages that come in.
-   socket.on('chat message', function(msg) {
+   socket.on('chat message', function(msg){
       //console.log('message: ' + JSON.parse(msg).text);
       //console.log('message: ' + msg);
       console.log('Room:' + cD.room[ socket.id] + ', id:' + socket.id + ", name:" + cD.userName[socket.id] + ", msg:" + msg);
@@ -80,36 +80,16 @@ io.on('connection', function(socket) {
       // Special emit, only to Host
       //io.to(hD.id).emit('chat message', 'OnlyToHost: ' + msg);
    });
-   
-   
-   // Signaling in support of WebRTC.
-   socket.on('signaling message', function(msg) {
-      var signal_message = JSON.parse(msg);
-      
-      if (signal_message.to == 'host') {
-         var target = cD.hostID[ cD.room[ socket.id]];
-      } else {
-         var target = cD.id[ signal_message.to];
-      }
-      
-      console.log('sm=' + JSON.stringify(signal_message));
-      
-      // Relay the message (emit) to the target user client.
-      io.to( target).emit("signaling message", msg);
-   });
-   
-   
+
    // Send mouse and keyboard states to the host client.
-   socket.on('client-mK-event', function(msg) {
+   socket.on('client-mK-event', function(msg){
       //console.log('Client Mouse: ' + JSON.parse(msg).mouseX_px + "," + JSON.parse(msg).mouseY_px);
       
       // Determine the id of the room-host for this client. Then send data to the host for that room.
-      // socket.id --> room --> room host.
       var hostID = cD.hostID[ cD.room[ socket.id]];
       //console.log('room='+cD.room[ socket.id]+", hID="+cD.hostID[ cD.room[ socket.id]]);
       
-      // StH: Server to Host
-      io.to( hostID).emit('client-mK-StH-event', msg);
+      io.to( hostID).emit('client-mk-event', msg);
    });
    
    socket.on('roomJoin', function(msg) {
@@ -156,12 +136,12 @@ io.on('connection', function(socket) {
    });
    
    // This "disconnect" event is fired by the server.
-   socket.on('disconnect', function() {
+   socket.on('disconnect', function(){
       if (cD.userName[ socket.id]) {
-         
          // Report at the server.
          console.log(' ');
          var message = cD.userName[ socket.id] + ' has disconnected';
+         
          console.log( message + ' (by self, '+socket.id+').');
          
          // Report to the room host.
@@ -172,16 +152,15 @@ io.on('connection', function(socket) {
          // Remove this user from the maps.
          delete cD.id[ cD.userName[ socket.id]];
          delete cD.userName[ socket.id];
-         
-         // If this is the host disconnecting...
-         if (hostID == socket.id) {
+         // If this is the host disconnecting
+         if (hostID == socket.id){
             delete cD.hostID[ cD.room[ socket.id]];
          }
          delete cD.room[ socket.id];
       }
    });
    
-   socket.on('clientDisconnectByHost', function(msg) {
+   socket.on('clientDisconnectByHost', function(msg){
       var clientName = msg;
       var clientID = cD.id[ clientName];
       
@@ -192,7 +171,7 @@ io.on('connection', function(socket) {
       //socket.disconnect();
    });
    
-   socket.on('okDisconnectMe', function(msg) {
+   socket.on('okDisconnectMe', function(msg){
       // This event indicated the non-host client got the clientDisconnectByHost message (see above) and
       // agrees to go peacefully.
       var clientName = msg;
@@ -218,16 +197,10 @@ io.on('connection', function(socket) {
       socket.disconnect();
    });
 
-   socket.on('shutDown-p2p-deleteClient', function( msg) {
-      var clientName = msg;
-      var clientID = cD.id[ clientName];
-      var hostID = cD.hostID[ cD.room[ clientID]];
-      io.to( hostID).emit('shutDown-p2p-deleteClient', clientName);   
-   });
    
 });
 
-http.listen(port, function() {
+http.listen(port, function(){
    console.log('listening on *:' + port);
 });
 
