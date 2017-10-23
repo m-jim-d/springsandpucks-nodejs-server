@@ -1,5 +1,5 @@
 // Node Server Script
-// Version 1.01 (10:44 PM Wed August 30, 2017)
+// Version 1.02 (3:28 PM Fri September 29, 2017)
 // Written by: James D. Miller
 
 var app = require('express')();
@@ -110,8 +110,6 @@ io.on('connection', function(socket) {
       
       // StH: Server to Host
       io.to( hostID).emit('client-mK-StH-event', msg);
-      // This older form of this emit should be removed. Here for temporarily for backward compatibility.
-      io.to( hostID).emit('client-mk-event', msg);
    });
    
    socket.on('roomJoin', function(msg) {
@@ -225,6 +223,11 @@ io.on('connection', function(socket) {
       var clientID = cD.id[ clientName];
       var hostID = cD.hostID[ cD.room[ clientID]];
       io.to( hostID).emit('shutDown-p2p-deleteClient', clientName);   
+   });
+   
+   socket.on('command-from-host-to-all-clients', function( msg) {
+      // General emit to the room.
+      io.to( cD.room[ socket.id]).emit('command-from-host-to-all-clients', msg);
    });
    
 });
