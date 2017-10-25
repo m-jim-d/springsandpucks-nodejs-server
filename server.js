@@ -92,7 +92,7 @@ io.on('connection', function(socket) {
          var target = cD.id[ signal_message.to];
       }
       
-      console.log('sm=' + JSON.stringify(signal_message));
+      //console.log('sm=' + JSON.stringify(signal_message));
       
       // Relay the message (emit) to the target user client.
       io.to( target).emit("signaling message", msg);
@@ -162,7 +162,7 @@ io.on('connection', function(socket) {
          // Report at the server.
          console.log(' ');
          var message = cD.userName[ socket.id] + ' has disconnected';
-         console.log( message + ' (by self, '+socket.id+').');
+         console.log( message + ' (by self, ' + socket.id + ').');
          
          // Report to the room host.
          var hostID = cD.hostID[ cD.room[ socket.id]];
@@ -186,7 +186,8 @@ io.on('connection', function(socket) {
       var clientID = cD.id[ clientName];
       
       // Send disconnect message to the client.
-      io.to(clientID).emit('disconnectByServer', clientName);
+      console.log('in clientDisconnectByHost, msg=' + msg + ', clientID=' + clientID);
+      io.to( clientID).emit('disconnectByServer', clientName);
       
       // Don't do the following. It will disconnect the host socket. Not what we want here!
       //socket.disconnect();
@@ -215,10 +216,12 @@ io.on('connection', function(socket) {
       delete cD.room[ clientID];
       
       //Finally, go ahead and disconnect this client's socket.
+      console.log('just before socket.disconnect()');
       socket.disconnect();
    });
 
    socket.on('shutDown-p2p-deleteClient', function( msg) {
+      console.log('in server, shutDown-p2p-deleteClient, msg='+msg);
       var clientName = msg;
       var clientID = cD.id[ clientName];
       var hostID = cD.hostID[ cD.room[ clientID]];
