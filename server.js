@@ -1,5 +1,5 @@
 // Node Server Script
-// Version 1.02 (3:28 PM Fri September 29, 2017)
+// Version 1.30 (8:14 PM Fri October 27, 2017)
 // Written by: James D. Miller
 
 var app = require('express')();
@@ -45,6 +45,9 @@ io.on('connection', function(socket) {
    // Tell the new user their network name.
    io.to(socket.id).emit('your name is', cD.userName[socket.id]);
    
+   // Example of how to parse out the query string if it is sent in the connection attempt from the client.
+   //console.log('socket.handshake.query.par1=' + socket.handshake.query['par1'] + ", par2=" + socket.handshake.query['par2']);
+   
    // Now set up the various listeners. I know this seems a little odd, but these listeners
    // need to be defined each time this connection event fires, i.e. for each socket.
    
@@ -72,7 +75,7 @@ io.on('connection', function(socket) {
    socket.on('chat message', function(msg) {
       //console.log('message: ' + JSON.parse(msg).text);
       //console.log('message: ' + msg);
-      console.log('Room:' + cD.room[ socket.id] + ', id:' + socket.id + ", name:" + cD.userName[socket.id] + ", msg:" + msg);
+      //console.log('Room:' + cD.room[ socket.id] + ', id:' + socket.id + ", name:" + cD.userName[socket.id] + ", msg:" + msg);
       
       // General emit to the room.
       io.to( cD.room[ socket.id]).emit('chat message', msg + " (" + cD.userName[socket.id] + ")");
@@ -113,7 +116,10 @@ io.on('connection', function(socket) {
    });
    
    socket.on('roomJoin', function(msg) {
-      var roomName = msg;
+      var msgParsed = JSON.parse( msg);
+      var roomName = msgParsed.roomName;
+      var requestStream = msgParsed.requestStream;
+      //console.log('requestStream='+requestStream+', roomName='+roomName);
       
       // Check to make sure the room has a host.
       if (cD.hostID[ roomName]) {
@@ -124,7 +130,7 @@ io.on('connection', function(socket) {
          io.to(socket.id).emit('chat message', 'You have joined room ' + cD.room[socket.id] + ' and your client name is '+cD.userName[socket.id]+'.');
          
          // Give the host the name of the new user so a new game client can be created.
-         io.to( cD.hostID[ roomName]).emit('new-game-client', cD.userName[socket.id]);
+         io.to( cD.hostID[ roomName]).emit('new-game-client', JSON.stringify({'clientName':cD.userName[socket.id], 'requestStream':requestStream}));
          
          // Chat this to the host.
          io.to( cD.hostID[ roomName]).emit('chat message', cD.userName[socket.id]+ ' is a new client in '+roomName+'.');
@@ -186,7 +192,7 @@ io.on('connection', function(socket) {
       var clientID = cD.id[ clientName];
       
       // Send disconnect message to the client.
-      console.log('in clientDisconnectByHost, msg=' + msg + ', clientID=' + clientID);
+      //console.log('in clientDisconnectByHost, msg=' + msg + ', clientID=' + clientID);
       io.to( clientID).emit('disconnectByServer', clientName);
       
       // Don't do the following. It will disconnect the host socket. Not what we want here!
@@ -216,12 +222,12 @@ io.on('connection', function(socket) {
       delete cD.room[ clientID];
       
       //Finally, go ahead and disconnect this client's socket.
-      console.log('just before socket.disconnect()');
+      //console.log('just before socket.disconnect()');
       socket.disconnect();
    });
 
    socket.on('shutDown-p2p-deleteClient', function( msg) {
-      console.log('in server, shutDown-p2p-deleteClient, msg='+msg);
+      //console.log('in server, shutDown-p2p-deleteClient, msg='+msg);
       var clientName = msg;
       var clientID = cD.id[ clientName];
       var hostID = cD.hostID[ cD.room[ clientID]];
