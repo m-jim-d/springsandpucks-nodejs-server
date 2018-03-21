@@ -1,5 +1,5 @@
 // Node Server Script
-// Version 2.0.01 (5:09 PM Fri March 16, 2018)
+// Version 2.0.04 (9:37 AM Wed March 21, 2018)
 // Written by: James D. Miller
 
 var app = require('express')();
@@ -75,15 +75,17 @@ function setDisplayName( clientID, mode) {
 
 io.on('connection', function(socket) {
    // Example of how to parse out the query string if it is sent in the connection attempt from the client.
-   console.log('mode=' + socket.handshake.query['mode'] + ", previousName=" + socket.handshake.query['previous_name'] + ", nickName=" + socket.handshake.query['nickName']);
+   console.log("");
+   console.log("Connection starting...");
+   console.log("mode=" + socket.handshake.query['mode'] + ", current name=" + socket.handshake.query['currentName'] + ", nickName=" + socket.handshake.query['nickName']);
    
    // Normal initial connection
    if (socket.handshake.query['mode'] == 'normal') {
       cD.userIndex += 1;
       var user_name = 'u' + cD.userIndex;
-   // If re-connecting, use the previous user name that comes in via the query string.
+   // If re-connecting, re-use the current user name that comes in via the query string.
    } else if (socket.handshake.query['mode'] == 're-connect') {
-      var user_name = socket.handshake.query['previous_name'];
+      var user_name = socket.handshake.query['currentName'];
    }
    var nick_name = socket.handshake.query['nickName'];
    
