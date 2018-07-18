@@ -125,10 +125,15 @@ io.on('connection', function(socket) {
    });
    
    
-   // Broadcast the incoming chat messages that come in.
+   // Broadcast the incoming chat message to everyone in the sender's room.
    socket.on('chat message', function(msg) {
-      // General emit to the room.
+      // General emit to the room. Note: io.to and io.in do the same thing.
       io.to( cD.room[ socket.id]).emit('chat message', msg + " (" + setDisplayName(socket.id, 'comma') + ")");
+   });
+   // Broadcast the incoming chat message to everyone in the sender's room, except the sender.
+   socket.on('chat message but not me', function(msg) {
+      // Emit to everyone in the sender's room except the sender.
+      socket.to( cD.room[ socket.id]).emit('chat message',  msg + " (" + setDisplayName(socket.id, 'comma') + ")");
    });
    
    
@@ -261,7 +266,7 @@ io.on('connection', function(socket) {
    });
    
    socket.on('okDisconnectMe', function(msg) {
-      // This event indicated the non-host client got the clientDisconnectByHost message (see above) and
+      // This event indicates that the non-host client has gotten the clientDisconnectByHost message (see above) and
       // agrees to go peacefully.
       var clientName = msg;
       var clientID = cD.id[ clientName];
