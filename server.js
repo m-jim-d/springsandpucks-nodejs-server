@@ -15,7 +15,7 @@ app.get('/', function(req, res) {
 
 // Put various client data and maps in a global.
 var cD = {};
-cD.userIndex = 0;
+cD.userIndex = 10;
 
 // Map: userName[ socket.id]
 cD.userName = {};
