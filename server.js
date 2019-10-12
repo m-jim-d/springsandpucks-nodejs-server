@@ -158,6 +158,8 @@ io.on('connection', function(socket) {
       
       if (control_message.to == 'host') {
          var target = cD.hostID[ cD.room[ socket.id]];
+      } else if (control_message.to == 'room') {
+         var target = cD.room[ socket.id];
       } else {
          var target = cD.id[ control_message.to];
       }
