@@ -160,11 +160,15 @@ io.on('connection', function(socket) {
          var target = cD.hostID[ cD.room[ socket.id]];
       } else if (control_message.to == 'room') {
          var target = cD.room[ socket.id];
+      } else if (control_message.to == 'roomNoSender') {
+         var target = cD.room[ socket.id];
+         socket.to( target).emit('control message', msg);
+         return;
       } else {
          var target = cD.id[ control_message.to];
       }
       
-      // Relay the message (emit) to the target user.
+      // Relay the message (emit) to the target user(s).
       io.to( target).emit('control message', msg);
    });
    
