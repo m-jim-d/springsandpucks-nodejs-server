@@ -312,5 +312,5 @@ io.on('connection', function(socket) {
 //http.listen(port, function() {
 //   console.log('listening on *:' + port);
 //});
-http.listen(port, {cookie:false});
+http.listen(port, {path:"/some/path", cookie:false});
 
