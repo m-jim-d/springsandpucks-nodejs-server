@@ -59,15 +59,23 @@ function removeUserFromMaps( clientID) {
 }
 
 function setDisplayName( clientID, mode) {
-   var displayNameString;
-   if (cD.nickName[clientID]) {
+   var displayNameString, userName;
+   
+   var hostID = cD.hostID[ cD.room[ clientID]];
+   if (hostID == clientID) {
+      userName = 'host';
+   } else {
+      userName = cD.userName[ clientID];
+   }
+   
+   if (cD.nickName[ clientID]) {
       if (mode == 'comma') {
-         displayNameString = cD.nickName[clientID] + ', ' + cD.userName[clientID];
+         displayNameString = cD.nickName[ clientID] + ', ' + userName;
       } else if (mode == 'prens') {
-         displayNameString = cD.nickName[clientID] + ' (' + cD.userName[clientID] + ')';
+         displayNameString = cD.nickName[ clientID] + ' (' + userName + ')';
       }
    } else {
-      displayNameString = cD.userName[clientID];
+      displayNameString = userName;
    }
    return displayNameString;
 }
@@ -310,7 +318,7 @@ io.on('connection', function(socket) {
    
 });
 
-http.listen(port, function() {
+http.listen( port, function() {
    console.log('listening on *:' + port);
 });
 
