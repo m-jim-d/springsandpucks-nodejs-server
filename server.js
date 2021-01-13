@@ -1,7 +1,7 @@
 // Node Server Script
 // server.js
-   console.log('server version 2.3.0');
-// 5:40 PM Fri November 1, 2019
+   console.log('server version 2.5');
+// 3:15 PM Sun January 10, 2021
 // Written by: James D. Miller
 
 var app = require('express')();
@@ -14,9 +14,10 @@ app.get('/', function(req, res) {
    res.sendfile('links.html');
 });
 
-// Put various client data and maps in a global.
+// Put various client data (cD) and maps in a global.
 var cD = {};
-cD.userIndex = 0;
+cD.connectionIndex = 0;
+cD.nameIndex = 0;
 
 // Map: userName[ socket.id]
 cD.userName = {};
@@ -31,6 +32,12 @@ cD.room = {};
 // Map: hostID[ roomName]
 cD.hostID = {};
 
+// After restarting the server, send info to all remaining connections.
+setTimeout( function() {
+   io.emit("chat message", "The server has restarted. It's possible that all prior connections will reconnect automatically, or you may only need to press the connect button. If there are problems, " +
+                           "clients and hosts should refresh their pages. Hosts should indicate rooms and reconnect. Then clients should reconnect to those rooms.");
+   console.log("\n" + "info sent to clients: server has restarted");
+}, 5000);
 
 // Miscellaneous support functions...
 
@@ -80,6 +87,82 @@ function setDisplayName( clientID, mode) {
    return displayNameString;
 }
 
+function connectionInfo() {
+   return 'sockets=' + io.engine.clientsCount + ', connection acts=' + cD.connectionIndex + ', names=' + Object.keys( cD.userName).length + ', nick names=' + Object.keys( cD.nickName).length;
+}
+
+function roomReport() {
+   let usersByRoom = connectionInfo();
+   
+   for (let roomInMap in cD.hostID) {
+      usersByRoom += "<br>clients in " + roomInMap + " = ";
+      for (let socket_id in cD.userName) {
+         let userName = cD.userName[ socket_id];
+         let userNickName = cD.nickName[ socket_id];
+         if (cD.room[ socket_id] == roomInMap) {
+            // if this name is the host's name
+            if (userName == cD.userName[ cD.hostID[ roomInMap]]) {
+               if (userNickName) {
+                  usersByRoom += userName + "(h-" + userNickName + "),";
+               } else {
+                  usersByRoom += userName + "(h),";
+               }
+            } else {
+               if (userNickName) {
+                  usersByRoom += userName + "(" + userNickName + "),";
+               } else {
+                  usersByRoom += userName + ",";
+               }
+            }
+         }
+      }
+      // remove the trailing ","
+      usersByRoom = usersByRoom.slice(0, -1);
+   }
+   return usersByRoom;
+}
+
+// not using this currently...
+function highestNameNumber() {
+   let maxNumber = 0;
+   if (Object.keys( cD.userName).length > 0) {
+      for (let socket_id in cD.userName) {
+         let userName = cD.userName[ socket_id];
+         // remove the leading "u" in the name
+         let numberInName = userName.slice(1);
+         maxNumber = Math.max( numberInName, maxNumber);
+      }
+   }
+   return maxNumber;
+}
+
+function nameInUse( nameToCheck) {
+   let nameInUse = false;
+   for (let socket_id in cD.userName) {
+      let userName = cD.userName[ socket_id];
+      if (userName == nameToCheck) {
+         nameInUse = true;
+      }
+   }
+   return nameInUse;
+}
+
+function disconnectClientsInOneRoom( roomName) {
+   for (let socket_id in cD.userName) {
+      let userName = cD.userName[ socket_id];
+      // apply to users in the room, but not the room host...
+      if ( (cD.room[ socket_id] == roomName) && (userName != cD.userName[ cD.hostID[ roomName]]) ) {
+         io.to( socket_id).emit('disconnectByServer', userName);
+      }
+   }
+}
+
+// This one is only used when debugging (see commented call)
+function disconnectClientsInAllRooms() {
+   for (let roomInMap in cD.hostID) {
+      disconnectClientsInOneRoom( roomInMap);
+   }
+}
 
 // Socket.io stuff...
 
@@ -89,10 +172,15 @@ io.on('connection', function(socket) {
    console.log("Connection starting...");
    console.log("mode=" + socket.handshake.query['mode'] + ", current name=" + socket.handshake.query['currentName'] + ", nickName=" + socket.handshake.query['nickName']);
    
+   cD.connectionIndex += 1;
+   
    // Normal initial connection
    if (socket.handshake.query['mode'] == 'normal') {
-      cD.userIndex += 1;
-      var user_name = 'u' + cD.userIndex;
+      do {
+         cD.nameIndex += 1;
+         var user_name = 'u' + cD.nameIndex;
+      } while (nameInUse( user_name));
+      
    // If re-connecting, re-use the current user name that comes in via the query string.
    } else if (socket.handshake.query['mode'] == 're-connect') {
       var user_name = socket.handshake.query['currentName'];
@@ -105,7 +193,7 @@ io.on('connection', function(socket) {
    cD.id[ user_name] = socket.id;
    
    console.log('');
-   console.log('Their count=' + io.engine.clientsCount + ', my index=' + cD.userIndex + ', names=' + Object.keys(cD.userName).length + ', nick names=' + Object.keys(cD.nickName).length);
+   console.log( connectionInfo());
    
    console.log('New client: '+ cD.userName[socket.id] +', '+ socket.id + '.');
    
@@ -135,10 +223,19 @@ io.on('connection', function(socket) {
    });
    
    
-   // Broadcast the incoming chat message to everyone in the sender's room.
+   // Broadcast the incoming chat message to everyone in the sender's room. Allow some special text strings
+   // to trigger actions on the server.
    socket.on('chat message', function(msg) {
-      // General emit to the room. Note: io.to and io.in do the same thing.
-      io.to( cD.room[ socket.id]).emit('chat message', msg + " (" + setDisplayName(socket.id, 'comma') + ")");
+      if (msg == "dcir") {
+         disconnectClientsInOneRoom( cD.room[ socket.id]);
+      } else if (msg == "dac") {
+         //disconnectClientsInAllRooms();
+      } else if (msg == "rr") {
+         io.to( cD.hostID[ cD.room[ socket.id]]).emit('chat message', roomReport());
+      } else {
+         // General emit to the room. Note: io.to and io.in do the same thing.
+         io.to( cD.room[ socket.id]).emit('chat message', msg + " (" + setDisplayName(socket.id, 'comma') + ")");
+      }
    });
    // Broadcast the incoming chat message to everyone in the sender's room, except the sender.
    socket.on('chat message but not me', function(msg) {
@@ -219,7 +316,7 @@ io.on('connection', function(socket) {
                JSON.stringify({'clientName':cD.userName[socket.id], 'requestStream':requestStream, 'player':player, 'nickName':nickName}));
             
             // Chat message to the host.
-            io.to( cD.hostID[ roomName]).emit('chat message', displayName + ' is a new client in room '+roomName+'.');
+            io.to( cD.hostID[ roomName]).emit('chat message', displayName + ' is a new client in room ' + roomName + '.');
             
          } else {
             io.to(socket.id).emit('room-joining-message', 'Sorry, there is no host yet for room ' + roomName + '.');
@@ -237,13 +334,13 @@ io.on('connection', function(socket) {
             console.log('Room ' + roomName + ' joined by ' + cD.userName[ socket.id] + '.');
             
             // General you-have-joined-the-room message.
-            io.to(socket.id).emit('room-joining-message', 'You have joined room ' + cD.room[socket.id] + ' and your client name is '+ displayName +'.');
+            io.to(socket.id).emit('room-joining-message', 'You have joined room ' + cD.room[socket.id] + ' and your client name is ' + displayName + '.');
             
             // Set this user as the host for this room.
             cD.hostID[ cD.room[ socket.id]] = socket.id;
             console.log('User '+ displayName +' identified as host for room '+ cD.room[ socket.id] + '.');
             
-            // An oh-by-the-way "you are the host" message.
+            // And oh-by-the-way "you are the host" message.
             io.to(socket.id).emit('room-joining-message', 'You are the host of room ' + cD.room[ socket.id] + '.');
          }
       }
@@ -262,7 +359,7 @@ io.on('connection', function(socket) {
          
          // Report to the room host.
          var hostID = cD.hostID[ cD.room[ socket.id]];
-         io.to( hostID).emit('chat message', message+'.');
+         io.to( hostID).emit('chat message', message + '.');
          io.to( hostID).emit('client-disconnected', cD.userName[ socket.id]);
          
          // Remove this user from the maps.
