@@ -34,8 +34,9 @@ cD.hostID = {};
 
 // After restarting the server, send info to all remaining connections.
 setTimeout( function() {
-   io.emit("chat message", "The server has restarted. It's possible that all prior connections will reconnect automatically, or you may only need to press the connect button. If there are problems, " +
-                           "clients and hosts should refresh their pages. Hosts should indicate rooms and reconnect. Then clients should reconnect to those rooms.");
+   io.emit("chat message", "The server has started, restarted, or has been awakened. <br><br>" +
+                           "If this is a restart, it's possible that all prior connections will reconnect automatically, or you may only need to press the connect button. <br><br>" +
+                           "If there are problems, clients and hosts should refresh their pages. Hosts should indicate rooms and reconnect. Then clients should reconnect to those rooms.");
    console.log("\n" + "info sent to clients: server has restarted");
 }, 5000);
 
