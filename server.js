@@ -176,14 +176,17 @@ io.on('connection', function(socket) {
    cD.connectionIndex += 1;
    
    // Normal initial connection
+   // Note that the host is always in normal mode.
    if (socket.handshake.query['mode'] == 'normal') {
+      // Increment until find a name that's not in use.
       do {
          cD.nameIndex += 1;
          var user_name = 'u' + cD.nameIndex;
       } while (nameInUse( user_name));
       
-   // If re-connecting, re-use the current user name that comes in via the query string.
    } else if (socket.handshake.query['mode'] == 're-connect') {
+      // If re-connecting, re-use the current user name that comes in via the query string.
+      // Re-connection happens only when the client is starting a stream or when the P2P connection makes a second attempt.
       var user_name = socket.handshake.query['currentName'];
    }
    var nick_name = socket.handshake.query['nickName'];
@@ -228,11 +231,22 @@ io.on('connection', function(socket) {
    // to trigger actions on the server.
    socket.on('chat message', function(msg) {
       if (msg == "dcir") {
-         disconnectClientsInOneRoom( cD.room[ socket.id]);
+         if (socket.id == cD.hostID[ cD.room[ socket.id]]) {
+            disconnectClientsInOneRoom( cD.room[ socket.id]);
+         } else {
+            io.to( socket.id).emit('chat message', 'Requests to disconnect clients must come from the host.');
+         }
+         
       } else if (msg == "dac") {
          //disconnectClientsInAllRooms();
+         
       } else if (msg == "rr") {
-         io.to( cD.hostID[ cD.room[ socket.id]]).emit('chat message', roomReport());
+         if (socket.id == cD.hostID[ cD.room[ socket.id]]) {
+            io.to( cD.hostID[ cD.room[ socket.id]]).emit('chat message', roomReport());
+         } else {
+            io.to( socket.id).emit('chat message', 'Requests for room reports must come from the host.');
+         }
+         
       } else {
          // General emit to the room. Note: io.to and io.in do the same thing.
          io.to( cD.room[ socket.id]).emit('chat message', msg + " (" + setDisplayName(socket.id, 'comma') + ")");
@@ -279,7 +293,7 @@ io.on('connection', function(socket) {
       io.to( target).emit('control message', msg);
    });
    
-   // Send mouse and keyboard states to the host client.
+   // Send mouse and keyboard states to the host.
    socket.on('client-mK-event', function(msg) {
       // Determine the id of the room-host for this client. Then send data to the host for that room.
       // socket.id --> room --> room host.
@@ -289,6 +303,7 @@ io.on('connection', function(socket) {
       io.to( hostID).emit('client-mK-StH-event', msg);
    });
    
+   // After connecting, the 'connect' listener, on client or host, sends a message to 'roomJoin' listener on the server.
    socket.on('roomJoin', function(msg) {
       var msgParsed = JSON.parse( msg);
       
@@ -308,7 +323,9 @@ io.on('connection', function(socket) {
             console.log('Room ' + roomName + ' joined by ' + cD.userName[ socket.id] + '.');
             
             // Send message to the individual client that is joining the room.
-            io.to(socket.id).emit('room-joining-message', 'You have joined room ' + cD.room[socket.id] + ' and your client name is '+ displayName +'.');
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'You have joined room ' + cD.room[socket.id] + ' and your client name is '+ displayName +'.', 
+               'userName':cD.userName[ socket.id]}));
             
             // Message to the room host.
             // Give the host the name of the new user so a new game client can be created. This is where "player" and "nickName" info gets
@@ -320,14 +337,18 @@ io.on('connection', function(socket) {
             io.to( cD.hostID[ roomName]).emit('chat message', displayName + ' is a new client in room ' + roomName + '.');
             
          } else {
-            io.to(socket.id).emit('room-joining-message', 'Sorry, there is no host yet for room ' + roomName + '.');
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'Sorry, there is no host yet for room ' + roomName + '.',
+               'userName':cD.userName[ socket.id]}));
          }
       
       } else if (hostOrClient == 'host') {
          // Should check if the room already has a host.
          if (cD.hostID[ roomName]) {
             // Send warning to the client that is attempting to host.
-            io.to(socket.id).emit('room-joining-message', 'Sorry, there is already a host for room ' + roomName + '.');
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'Sorry, there is already a host for room ' + roomName + '.',
+               'userName':cD.userName[ socket.id]}));
             
          } else {
             socket.join(roomName);
@@ -335,14 +356,18 @@ io.on('connection', function(socket) {
             console.log('Room ' + roomName + ' joined by ' + cD.userName[ socket.id] + '.');
             
             // General you-have-joined-the-room message.
-            io.to(socket.id).emit('room-joining-message', 'You have joined room ' + cD.room[socket.id] + ' and your client name is ' + displayName + '.');
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'You have joined room ' + cD.room[socket.id] + ' and your client name is ' + displayName + '.',
+               'userName':cD.userName[ socket.id]}));
             
             // Set this user as the host for this room.
             cD.hostID[ cD.room[ socket.id]] = socket.id;
             console.log('User '+ displayName +' identified as host for room '+ cD.room[ socket.id] + '.');
             
             // And oh-by-the-way "you are the host" message.
-            io.to(socket.id).emit('room-joining-message', 'You are the host of room ' + cD.room[ socket.id] + '.');
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'You are the host of room ' + cD.room[ socket.id] + '.',
+               'userName':cD.userName[ socket.id]}));
          }
       }
    });
