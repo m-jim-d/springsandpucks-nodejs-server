@@ -1,6 +1,6 @@
 // Node Server Script
 // server.js
-   console.log('server version 2.5');
+   console.log('server version 2.51');
 // 3:15 PM Sun January 10, 2021
 // Written by: James D. Miller
 
@@ -201,8 +201,10 @@ io.on('connection', function(socket) {
    
    console.log('New client: '+ cD.userName[socket.id] +', '+ socket.id + '.');
    
-   // Tell the new user their network name.
-   io.to(socket.id).emit('your name is', JSON.stringify({'name':cD.userName[socket.id], 'nickName':nick_name}));
+   // Tell the new user their network name. Note there is no listener for this on the host.
+   if (socket.id != cD.hostID[ cD.room[ socket.id]]) {
+      io.to(socket.id).emit('your name is', JSON.stringify({'name':cD.userName[socket.id], 'nickName':nick_name}));
+   }
    
    // Now set up the various listeners. I know this seems a little odd, but these listeners
    // need to be defined each time this connection event fires, i.e. for each socket.
@@ -329,7 +331,7 @@ io.on('connection', function(socket) {
             
             // Message to the room host.
             // Give the host the name of the new user so a new game client can be created. This is where "player" and "nickName" info gets
-            // sent to the host. Notice this is not done, or needed, in the host block below.
+            // sent to the host. Notice this emit to new-game-client is not done, or needed, in the host block below.
             io.to( cD.hostID[ roomName]).emit('new-game-client', 
                JSON.stringify({'clientName':cD.userName[socket.id], 'requestStream':requestStream, 'player':player, 'nickName':nickName}));
             
