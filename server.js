@@ -1,7 +1,7 @@
 // Node Server Script
 // server.js
-   console.log('server version 2.51');
-// 3:15 PM Sun January 10, 2021
+   console.log('server version 2.52');
+// 1:28 PM Thu January 28, 2021
 // Written by: James D. Miller
 
 var app = require('express')();
