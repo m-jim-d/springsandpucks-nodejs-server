@@ -1,6 +1,6 @@
 // Node Server Script
 // server.js
-   console.log('server version 2.52');
+   console.log('server version 0.0');
 // 1:28 PM Thu January 28, 2021
 // Written by: James D. Miller
 
@@ -26,7 +26,7 @@ cD.nickName = {};
 // Map: id[ userName]
 cD.id = {};
 
-// Map: room[ socket.id]
+// Map: room[ socket.id], i.e. roomName
 cD.room = {};
 
 // Map: hostID[ roomName]
@@ -277,16 +277,20 @@ io.on('connection', function(socket) {
    
    // General control message (note: same structure as the above handler for signaling messages)
    socket.on('control message', function(msg) {
-      var control_message = JSON.parse(msg);
+      var control_message = JSON.parse( msg);
       
+      // to the host only
       if (control_message.to == 'host') {
          var target = cD.hostID[ cD.room[ socket.id]];
+      // to everyone in the room   
       } else if (control_message.to == 'room') {
          var target = cD.room[ socket.id];
+      // to everyone in the room except the sender   
       } else if (control_message.to == 'roomNoSender') {
          var target = cD.room[ socket.id];
          socket.to( target).emit('control message', msg);
          return;
+      // to this particular user
       } else {
          var target = cD.id[ control_message.to];
       }
@@ -320,7 +324,7 @@ io.on('connection', function(socket) {
       if (hostOrClient == 'client') {
          // Check to make sure the room has a host.
          if (cD.hostID[ roomName]) {
-            socket.join(roomName);
+            socket.join( roomName);
             cD.room[ socket.id] = roomName;
             console.log('Room ' + roomName + ' joined by ' + cD.userName[ socket.id] + '.');
             
@@ -353,7 +357,7 @@ io.on('connection', function(socket) {
                'userName':cD.userName[ socket.id]}));
             
          } else {
-            socket.join(roomName);
+            socket.join( roomName);
             cD.room[ socket.id] = roomName;
             console.log('Room ' + roomName + ' joined by ' + cD.userName[ socket.id] + '.');
             
