@@ -1,15 +1,15 @@
 {
-  "name": "node-socket-PET",
-  "version": "1.0.0",
-  "description": "PET, node.js with socket.io.",
+  "name": "node-socket-sp",
+  "version": "2.0.0",
+  "description": "Springs and Pucks, node.js with socket.io.",
   "engines": {
-    "node": "8.1.4"
+    "node": "^16.0.0"
   },
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.10.2",
-    "socket.io": "^1.7.1"
+    "express": "^4.0.0",
+    "socket.io": "^3.0.0"
   }
 }
