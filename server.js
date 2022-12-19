@@ -25,14 +25,23 @@ SOFTWARE.
    console.log('server version 0.0');
 // 10:46 PM Mon November 7, 2022
 
+/*
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http, {cookiePath:false, cookie:false});
 const port = process.env.PORT || 3000;
+*/
+
+const app = require('express')();
+const http = require('http').Server(app);
+let options = { 'cors':{'origin':"*", 'credentials':false} };
+const io = require('socket.io')(http, options);
+const port = process.env.PORT || 3000;
 
 app.get('/', function(req, res) {
    // In a browser, if you set the URL to localhost:3000, you'll get this page:
-   res.sendfile('links.html');
+   //res.sendfile('links.html');
+   res.sendFile( 'links.html', {'root': '.'} );   
 });
 
 // Put various client data (cD) and maps in a global.

@@ -1,4 +1,10 @@
 /node_modules
-npm-debug.log
-.DS_Store
-/*.env
+/old files
+publish.bat
+package-lock.json
+node-server.zip
+notes_jdm.txt
+package.json.html
+package-new.json
+server.js.html
+timeleft.bat
