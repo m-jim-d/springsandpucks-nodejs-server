@@ -23,14 +23,7 @@ SOFTWARE.
 // Node Server Script
 // server.js
    console.log('server version 0.0');
-// 10:46 PM Mon November 7, 2022
-
-/*
-var app = require('express')();
-var http = require('http').Server(app);
-var io = require('socket.io')(http, {cookiePath:false, cookie:false});
-const port = process.env.PORT || 3000;
-*/
+// 9:02 PM Mon December 19, 2022
 
 const app = require('express')();
 const http = require('http').Server(app);
@@ -40,7 +33,6 @@ const port = process.env.PORT || 3000;
 
 app.get('/', function(req, res) {
    // In a browser, if you set the URL to localhost:3000, you'll get this page:
-   //res.sendfile('links.html');
    res.sendFile( 'links.html', {'root': '.'} );   
 });
 
