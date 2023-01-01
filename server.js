@@ -270,7 +270,6 @@ io.on('connection', function(socket) {
       } else if (reset == "extend") {
          clearTimeout( warningTimer);
          clearTimeout( logoffTimer);
-         //idleTime_m += t_min;
       }
       
       if (reset != "extend") {
@@ -288,7 +287,7 @@ io.on('connection', function(socket) {
             // don't disconnect the host if there are any non-host users
             let n_users = Object.keys( cD.userName).length;
             // don't let the extensions go on forever
-            if ((n_users == 1) || (idleTime_m >= 90.0)) {    // 180
+            if ((n_users == 1) || (idleTime_m >= 180.0)) {    // 180
                socket.emit('chat message', disconnectNotice);
                console.log( disconnectNotice + idString);
                removeUserFromMaps( socket.id);
