@@ -175,7 +175,8 @@ function disconnectClientsInOneRoom( roomName) {
       let userName = cD.userName[ socket_id];
       // apply to users in the room, but not the room host...
       if ( (cD.room[ socket_id] == roomName) && (userName != cD.userName[ cD.hostID[ roomName]]) ) {
-         io.to( socket_id).emit('disconnectByServer', userName);
+         let pars = {'name':userName, 'originator':'host'};
+         io.to( socket_id).emit('disconnectByServer', JSON.stringify( pars));
       }
    }
 }
@@ -250,10 +251,70 @@ io.on('connection', function(socket) {
       io.to(socket_id).emit('echo-from-Server-to-Client', 'host');
    });
    
-   
+   /*
+   This timer protects my Heroku account from idle clients: an abandoned browser tab that has a socket open.
+   The timer starts when the socket is opened, resets in "chat message". The host will not close until
+   all the non-host clients have closed; the host's timer is recursively extended until it is the only
+   client left.
+   */
+   var logoffTimer;
+   var warningTimer;
+   var idleTime_m = 0;
+   function setTimer( reset, t_min=45.0) {  // 60
+      if (reset == "initialize") {
+         idleTime_m = t_min;
+      } else if (reset == "restart") { 
+         clearTimeout( warningTimer);
+         clearTimeout( logoffTimer);
+         idleTime_m = t_min;
+      } else if (reset == "extend") {
+         clearTimeout( warningTimer);
+         clearTimeout( logoffTimer);
+         //idleTime_m += t_min;
+      }
+      
+      if (reset != "extend") {
+         warningTimer = setTimeout( () => {
+            socket.emit('chat message', 'Idle socket will disconnect in ' + (t_min/2.0).toFixed(2) + ' minutes.');
+         }, (t_min/2.0) * 60 * 1000);
+      }
+
+      logoffTimer = setTimeout( () => {
+         let disconnectNotice = 'Idle for ' + idleTime_m.toFixed(2) + ' minutes. Socket disconnected.';
+         let idString = ' (id=' + socket.id + ')';
+         
+         // Host
+         if (socket.id == cD.hostID[ cD.room[ socket.id]]) {
+            // don't disconnect the host if there are any non-host users
+            let n_users = Object.keys( cD.userName).length;
+            // don't let the extensions go on forever
+            if ((n_users == 1) || (idleTime_m >= 90.0)) {    // 180
+               socket.emit('chat message', disconnectNotice);
+               console.log( disconnectNotice + idString);
+               removeUserFromMaps( socket.id);
+               socket.disconnect();
+            } else {
+               let extraTime_m = 5.0; // 5.0
+               idleTime_m += extraTime_m;
+               console.log("Time for host socket extended (" + (n_users-1) + "," + idleTime_m.toFixed(2) + ")");
+               setTimer("extend", extraTime_m);
+            }
+         // non-Host client
+         } else {
+            socket.emit('chat message', disconnectNotice);
+            console.log( disconnectNotice + idString);
+            let pars = {'name':cD.userName[ socket.id], 'originator':'server'};
+            io.to( socket.id).emit('disconnectByServer', JSON.stringify( pars));
+         }
+         
+      }, t_min * 60 * 1000);
+   }
+   setTimer("initialize");
+
    // Broadcast the incoming chat message to everyone in the sender's room. Allow some special text strings
    // to trigger actions on the server.
    socket.on('chat message', function(msg) {
+      setTimer("restart");
       if (msg == "dcir") {
          if (socket.id == cD.hostID[ cD.room[ socket.id]]) {
             disconnectClientsInOneRoom( cD.room[ socket.id]);
@@ -422,11 +483,12 @@ io.on('connection', function(socket) {
    });
    
    socket.on('clientDisconnectByHost', function(msg) {
-      var clientName = msg;
-      var clientID = cD.id[ clientName];
+      let clientName = msg;
+      let clientID = cD.id[ clientName];
       
       // Send disconnect message to the client.
-      io.to( clientID).emit('disconnectByServer', clientName);
+      let pars = {'name':clientName, 'originator':'host'};
+      io.to( clientID).emit('disconnectByServer', JSON.stringify( pars));
       
       // Don't do the following. It will disconnect the host socket. Not what we want here!
       //socket.disconnect();
