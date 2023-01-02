@@ -260,7 +260,7 @@ io.on('connection', function(socket) {
    var logoffTimer;
    var warningTimer;
    var idleTime_m = 0;
-   function setTimer( reset, t_min=45.0) {  // 60
+   function setTimer( reset, t_min=40.0) { // 40.0
       if (reset == "initialize") {
          idleTime_m = t_min;
       } else if (reset == "restart") { 
@@ -274,12 +274,16 @@ io.on('connection', function(socket) {
       
       if (reset != "extend") {
          warningTimer = setTimeout( () => {
-            socket.emit('chat message', 'Idle socket will disconnect in ' + (t_min/2.0).toFixed(2) + ' minutes.');
+            let warningMessage = 'Idle socket will disconnect in ' + (t_min/2.0).toFixed(1) + ' minutes.' +
+                                 '</br></br>Click <strong>Chat</strong> to reset the disconnect timer to ' + t_min.toFixed(1) + ' minutes.';
+            socket.emit('chat message', warningMessage);
          }, (t_min/2.0) * 60 * 1000);
       }
 
       logoffTimer = setTimeout( () => {
-         let disconnectNotice = 'Idle for ' + idleTime_m.toFixed(2) + ' minutes. Socket disconnected.';
+         let disconnectNotice = 'Idle for ' + idleTime_m.toFixed(1) + ' minutes. Network socket disconnected.';
+         let advice = '</br></br>Click <strong>Chat</strong> before disconnection for ' + t_min.toFixed(1) + ' minutes of network time.' +
+                      '</br></br>To <strong>reconnect:</strong> hosts click <strong>Create</strong>, clients click <strong>Connect</strong>.'
          let idString = ' (id=' + socket.id + ')';
          
          // Host
@@ -287,13 +291,13 @@ io.on('connection', function(socket) {
             // don't disconnect the host if there are any non-host users
             let n_users = Object.keys( cD.userName).length;
             // don't let the extensions go on forever
-            if ((n_users == 1) || (idleTime_m >= 180.0)) {    // 180
-               socket.emit('chat message', disconnectNotice);
+            if ((n_users == 1) || (idleTime_m >= 180.0)) {
+               socket.emit('chat message', disconnectNotice + advice);
                console.log( disconnectNotice + idString);
                removeUserFromMaps( socket.id);
                socket.disconnect();
             } else {
-               let extraTime_m = 5.0; // 5.0
+               let extraTime_m = 5.0;
                idleTime_m += extraTime_m;
                console.log("Time for host socket extended (" + (n_users-1) + "," + idleTime_m.toFixed(2) + ")");
                setTimer("extend", extraTime_m);
