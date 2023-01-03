@@ -260,7 +260,7 @@ io.on('connection', function(socket) {
    var logoffTimer;
    var warningTimer;
    var idleTime_m = 0;
-   function setTimer( reset, t_min=40.0) { // 40.0
+   function setTimer( reset, t_min=40.0) { // note 40 is in a message string below
       if (reset == "initialize") {
          idleTime_m = t_min;
       } else if (reset == "restart") { 
@@ -282,7 +282,7 @@ io.on('connection', function(socket) {
 
       logoffTimer = setTimeout( () => {
          let disconnectNotice = 'Idle for ' + idleTime_m.toFixed(1) + ' minutes. Network socket disconnected.';
-         let advice = '</br></br>Click <strong>Chat</strong> before disconnection for ' + t_min.toFixed(1) + ' minutes of network time.' +
+         let advice = '</br></br>Click <strong>Chat</strong> before disconnection for 40 minutes of network time.' +
                       '</br></br>To <strong>reconnect:</strong> hosts click <strong>Create</strong>, clients click <strong>Connect</strong>.'
          let idString = ' (id=' + socket.id + ')';
          
