@@ -334,7 +334,7 @@ io.on('connection', function(socket) {
          } else {
             io.to( socket.id).emit('chat message', 'Requests for room reports must come from the host.');
          }
-         
+               
       } else {
          // General emit to the room. Note: io.to and io.in do the same thing.
          io.to( cD.room[ socket.id]).emit('chat message', msg + " (" + setDisplayName(socket.id, 'comma') + ")");
