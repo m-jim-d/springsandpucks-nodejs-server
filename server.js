@@ -22,12 +22,16 @@ SOFTWARE.
 
 // Node Server Script
 // server.js
-   console.log('server version 0.0');
+   console.log('server version 0.2');
 // 9:02 PM Mon December 19, 2022
 
 const app = require('express')();
+
+var cors = require('cors');
+app.use(cors());
+
 const http = require('http').Server(app);
-let options = { 'cors':{'origin':"*", 'credentials':false} };
+let options = { 'cors':{'origin':'*', 'credentials':false} };
 const io = require('socket.io')(http, options);
 const port = process.env.PORT || 3000;
 
