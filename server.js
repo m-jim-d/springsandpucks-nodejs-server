@@ -190,29 +190,33 @@ function disconnectClientsInAllRooms() {
 
 // Socket.io stuff...
 
+http.listen( port, function() {
+   console.log('listening on *:' + port);
+});
+
 io.on('connection', function(socket) {
-   // Example of how to parse out the query string if it is sent in the connection attempt from the client.
+   // Showing the usage of the auth object if it is sent in the connection attempt from the client.
    console.log("");
    console.log("Connection starting...");
-   console.log("mode=" + socket.handshake.query['mode'] + ", current name=" + socket.handshake.query['currentName'] + ", nickName=" + socket.handshake.query['nickName']);
+   console.log("mode=" + socket.handshake.auth['mode'] + ", current name=" + socket.handshake.auth['currentName'] + ", nickName=" + socket.handshake.auth['nickName']);
    
    cD.connectionIndex += 1;
    
    // Normal initial connection
    // Note that the host is always in normal mode.
-   if (socket.handshake.query['mode'] == 'normal') {
+   if (socket.handshake.auth['mode'] == 'normal') {
       // Increment until find a name that's not in use.
       do {
          cD.nameIndex += 1;
          var user_name = 'u' + cD.nameIndex;
       } while (nameInUse( user_name));
       
-   } else if (socket.handshake.query['mode'] == 're-connect') {
-      // If re-connecting, re-use the current user name that comes in via the query string.
+   } else if (socket.handshake.auth['mode'] == 're-connect') {
+      // If re-connecting, re-use the current user name that comes in via the auth object.
       // Re-connection happens only when the client is starting a stream or when the P2P connection makes a second attempt.
-      var user_name = socket.handshake.query['currentName'];
+      var user_name = socket.handshake.auth['currentName'];
    }
-   var nick_name = socket.handshake.query['nickName'];
+   var nick_name = socket.handshake.auth['nickName'];
    
    // Two maps
    cD.userName[ socket.id] = user_name;
@@ -532,8 +536,4 @@ io.on('connection', function(socket) {
       io.to( cD.room[ socket.id]).emit('command-from-host-to-all-clients', msg);
    });
    
-});
-
-http.listen( port, function() {
-   console.log('listening on *:' + port);
 });
