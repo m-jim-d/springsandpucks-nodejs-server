@@ -403,10 +403,10 @@ io.on('connection', function(socket) {
    socket.on('roomJoin', function(msg) {
       var msgParsed = JSON.parse( msg);
       
-      var roomName = setDefault( msgParsed.roomName, null);
-      var requestStream = setDefault( msgParsed.requestStream, false);
-      var player = setDefault( msgParsed.player, null);
-      var hostOrClient = setDefault( msgParsed.hostOrClient, 'client');
+      var roomName = uT.setDefault( msgParsed.roomName, null);
+      var requestStream = uT.setDefault( msgParsed.requestStream, false);
+      var player = uT.setDefault( msgParsed.player, null);
+      var hostOrClient = uT.setDefault( msgParsed.hostOrClient, 'client');
       
       nickName = cD.nickName[ socket.id];
       var displayName = setDisplayName( socket.id, 'prens');
