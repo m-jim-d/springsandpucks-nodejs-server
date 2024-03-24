@@ -44,6 +44,7 @@ cD.nameIndex = 0;
 // Map: userName[ socket.id]
 cD.userName = {};
 cD.nickName = {};
+cD.teamName = {};
 
 // Map: id[ userName]
 cD.id = {};
@@ -83,6 +84,7 @@ function removeUserFromMaps( clientID) {
    
    // Not every user will have a nick name.
    if (cD.nickName[ clientID]) delete cD.nickName[ clientID];
+   if (cD.teamName[ clientID]) delete cD.teamName[ clientID];
    
    // The room map was used above. Now it's ok to remove the user from the room map.
    delete cD.room[ clientID];
@@ -99,10 +101,11 @@ function setDisplayName( clientID, mode) {
    }
    
    if (cD.nickName[ clientID]) {
+      let teamString = (cD.teamName[ clientID]) ? "."+cD.teamName[ clientID] : "";
       if (mode == 'comma') {
-         displayNameString = cD.nickName[ clientID] + ', ' + userName;
+         displayNameString = cD.nickName[ clientID] + teamString + ', ' + userName;
       } else if (mode == 'prens') {
-         displayNameString = cD.nickName[ clientID] + ' (' + userName + ')';
+         displayNameString = cD.nickName[ clientID] + teamString + ' (' + userName + ')';
       }
    } else {
       displayNameString = userName;
@@ -111,7 +114,7 @@ function setDisplayName( clientID, mode) {
 }
 
 function connectionInfo() {
-   return 'sockets=' + io.engine.clientsCount + ', connection acts=' + cD.connectionIndex + ', names=' + Object.keys( cD.userName).length + ', nick names=' + Object.keys( cD.nickName).length;
+   return 'sockets=' + io.engine.clientsCount + ', connection acts=' + cD.connectionIndex + ', names=' + Object.keys( cD.userName).length + ', nick names=' + Object.keys( cD.nickName).length + ', team names=' + Object.keys( cD.teamName).length;
 }
 
 function roomReport() {
@@ -198,7 +201,10 @@ io.on('connection', function(socket) {
    // Showing the usage of the auth object if it is sent in the connection attempt from the client.
    console.log("");
    console.log("Connection starting...");
-   console.log("mode=" + socket.handshake.auth['mode'] + ", current name=" + socket.handshake.auth['currentName'] + ", nickName=" + socket.handshake.auth['nickName']);
+   console.log("mode=" + socket.handshake.auth['mode'] + 
+               ", currentName=" + socket.handshake.auth['currentName'] + 
+               ", nickName="    + socket.handshake.auth['nickName'] + 
+               ", teamName="    + socket.handshake.auth['teamName'] );
    
    cD.connectionIndex += 1;
    
@@ -217,10 +223,12 @@ io.on('connection', function(socket) {
       var user_name = socket.handshake.auth['currentName'];
    }
    var nick_name = socket.handshake.auth['nickName'];
+   var team_name = socket.handshake.auth['teamName'];
    
    // Two maps
    cD.userName[ socket.id] = user_name;
    if (nick_name) cD.nickName[ socket.id] = nick_name;
+   if (team_name) cD.teamName[ socket.id] = team_name;
    cD.id[ user_name] = socket.id;
    
    console.log('');
@@ -230,7 +238,7 @@ io.on('connection', function(socket) {
    
    // Tell the new user their network name. Note there is no listener for this on the host.
    if (socket.id != cD.hostID[ cD.room[ socket.id]]) {
-      io.to(socket.id).emit('your name is', JSON.stringify({'name':cD.userName[socket.id], 'nickName':nick_name}));
+      io.to(socket.id).emit('your name is', JSON.stringify({'name':cD.userName[socket.id]}));
    }
    
    // Now set up the various listeners. I know this seems a little odd, but these listeners
@@ -344,6 +352,7 @@ io.on('connection', function(socket) {
          io.to( cD.room[ socket.id]).emit('chat message', msg + " (" + setDisplayName(socket.id, 'comma') + ")");
       }
    });
+   
    // Broadcast the incoming chat message to everyone in the sender's room, except the sender.
    socket.on('chat message but not me', function(msg) {
       // Emit to everyone in the sender's room except the sender.
@@ -368,6 +377,12 @@ io.on('connection', function(socket) {
    // General control message (note: same structure as the above handler for signaling messages)
    socket.on('control message', function(msg) {
       var control_message = JSON.parse( msg);
+      
+      // If a targeted chat message, add string that identifies the sender.
+      if (control_message.data.displayThis) {
+         control_message.data.displayThis += " (" + setDisplayName( socket.id, 'comma') + ")";
+         msg = JSON.stringify( control_message);
+      }
       
       // to the host only
       if (control_message.to == 'host') {
@@ -408,7 +423,8 @@ io.on('connection', function(socket) {
       var player = setDefault( msgParsed.player, null);
       var hostOrClient = setDefault( msgParsed.hostOrClient, 'client');
       
-      nickName = cD.nickName[ socket.id];
+      var nickName = cD.nickName[ socket.id];
+      var teamName = cD.teamName[ socket.id];
       var displayName = setDisplayName( socket.id, 'prens');
       
       if (hostOrClient == 'client') {
@@ -424,10 +440,11 @@ io.on('connection', function(socket) {
                'userName':cD.userName[ socket.id]}));
             
             // Message to the room host.
-            // Give the host the name of the new user so a new game client can be created. This is where "player" and "nickName" info gets
-            // sent to the host. Notice this emit to new-game-client is not done, or needed, in the host block below.
+            // Give the host the name of the new network user so a new game client can be created. This is where "player", "nickName", and "teamName" info gets
+            // sent to the host. Notice this emit to new-game-client is not done, or needed, in the host block below (because the host sets these things
+            // directly, without the need of the server).
             io.to( cD.hostID[ roomName]).emit('new-game-client', 
-               JSON.stringify({'clientName':cD.userName[socket.id], 'requestStream':requestStream, 'player':player, 'nickName':nickName}));
+               JSON.stringify({'clientName':cD.userName[socket.id], 'requestStream':requestStream, 'player':player, 'nickName':nickName, 'teamName':teamName}));
             
             // Chat message to the host.
             io.to( cD.hostID[ roomName]).emit('chat message', displayName + ' is a new client in room ' + roomName + '.');
