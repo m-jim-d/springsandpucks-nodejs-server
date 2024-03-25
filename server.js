@@ -125,17 +125,19 @@ function roomReport() {
       for (let socket_id in cD.userName) {
          let userName = cD.userName[ socket_id];
          let userNickName = cD.nickName[ socket_id];
+         let userTeamName = cD.teamName[ socket_id];
+         let teamString = (userTeamName) ? "."+userTeamName : "";
          if (cD.room[ socket_id] == roomInMap) {
             // if this name is the host's name
             if (userName == cD.userName[ cD.hostID[ roomInMap]]) {
                if (userNickName) {
-                  usersByRoom += userName + "(h-" + userNickName + "),";
+                  usersByRoom += userName + "(h-" + userNickName + teamString + "),";
                } else {
                   usersByRoom += userName + "(h),";
                }
             } else {
                if (userNickName) {
-                  usersByRoom += userName + "(" + userNickName + "),";
+                  usersByRoom += userName + "(" + userNickName + teamString + "),";
                } else {
                   usersByRoom += userName + ",";
                }
