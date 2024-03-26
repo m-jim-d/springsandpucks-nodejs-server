@@ -131,21 +131,21 @@ function roomReport() {
             // if this name is the host's name
             if (userName == cD.userName[ cD.hostID[ roomInMap]]) {
                if (userNickName) {
-                  usersByRoom += userName + "(h-" + userNickName + teamString + "),";
+                  usersByRoom += userName + "(h-" + userNickName + teamString + "), ";
                } else {
-                  usersByRoom += userName + "(h),";
+                  usersByRoom += userName + "(h), ";
                }
             } else {
                if (userNickName) {
-                  usersByRoom += userName + "(" + userNickName + teamString + "),";
+                  usersByRoom += userName + "(" + userNickName + teamString + "), ";
                } else {
-                  usersByRoom += userName + ",";
+                  usersByRoom += userName + ", ";
                }
             }
          }
       }
-      // remove the trailing ","
-      usersByRoom = usersByRoom.slice(0, -1);
+      // remove the trailing ", "
+      usersByRoom = usersByRoom.slice(0, -2);
    }
    return usersByRoom;
 }
@@ -164,11 +164,11 @@ function highestNameNumber() {
    return maxNumber;
 }
 
-function nameInUse( nameToCheck) {
+function nameInUse( nameToCheck, nameMap) {
    let nameInUse = false;
-   for (let socket_id in cD.userName) {
-      let userName = cD.userName[ socket_id];
-      if (userName == nameToCheck) {
+   for (let socket_id in nameMap) {
+      let name = nameMap[ socket_id];
+      if (name == nameToCheck) {
          nameInUse = true;
       }
    }
@@ -217,7 +217,7 @@ io.on('connection', function(socket) {
       do {
          cD.nameIndex += 1;
          var user_name = 'u' + cD.nameIndex;
-      } while (nameInUse( user_name));
+      } while (nameInUse( user_name, cD.userName));
       
    } else if (socket.handshake.auth['mode'] == 're-connect') {
       // If re-connecting, re-use the current user name that comes in via the auth object.
@@ -225,6 +225,7 @@ io.on('connection', function(socket) {
       var user_name = socket.handshake.auth['currentName'];
    }
    var nick_name = socket.handshake.auth['nickName'];
+   if (nick_name && nameInUse( nick_name, cD.nickName)) nick_name += "-"+user_name; // differentiate by appending the user name
    var team_name = socket.handshake.auth['teamName'];
    
    // Two maps
