@@ -225,7 +225,8 @@ io.on('connection', function(socket) {
       var user_name = socket.handshake.auth['currentName'];
    }
    var nick_name = socket.handshake.auth['nickName'];
-   if (nick_name && nameInUse( nick_name, cD.nickName)) nick_name += "-"+user_name; // differentiate by appending the user name
+    // Differentiate common nicknames by appending the user number.
+   if (nick_name && nameInUse( nick_name, cD.nickName)) nick_name += "-"+user_name.slice(0,-1);
    var team_name = socket.handshake.auth['teamName'];
    
    // Two maps
