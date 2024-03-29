@@ -225,7 +225,7 @@ io.on('connection', function(socket) {
       var user_name = socket.handshake.auth['currentName'];
    }
    var nick_name = socket.handshake.auth['nickName'];
-    // Differentiate common nicknames by appending the user number (slice off the u).
+    // Differentiate nicknames in use by multiple clients by appending the user number (slice off the u).
    if (nick_name && nameInUse( nick_name, cD.nickName)) nick_name += user_name.slice(1);
    var team_name = socket.handshake.auth['teamName'];
    
@@ -444,9 +444,11 @@ io.on('connection', function(socket) {
                'userName':cD.userName[ socket.id]}));
             
             // Message to the room host.
-            // Give the host the name of the new network user so a new game client can be created. This is where "player", "nickName", and "teamName" info gets
-            // sent to the host. Notice this emit to new-game-client is not done, or needed, in the host block below (because the host sets these things
-            // directly, without the need of the server).
+            // Give the host the name of the new network user so it can create a new game client. 
+            // This is where "player", "nickName", and "teamName" info gets sent to the host.
+            // Notice this emit to new-game-client is not done in the host block below.
+            // Generally, the host sets its own identity directly, then listens (room-joining-message) 
+            // to the server for any incrementation of its intended nickname.
             io.to( cD.hostID[ roomName]).emit('new-game-client', 
                JSON.stringify({'clientName':cD.userName[socket.id], 'requestStream':requestStream, 'player':player, 'nickName':nickName, 'teamName':teamName}));
             
@@ -472,10 +474,10 @@ io.on('connection', function(socket) {
             cD.room[ socket.id] = roomName;
             console.log('Room ' + roomName + ' joined by ' + cD.userName[ socket.id] + '.');
             
-            // General you-have-joined-the-room message.
+            // General you-have-joined-the-room message. This is where the host gets its incremented nickname.
             io.to(socket.id).emit('room-joining-message', 
                JSON.stringify({'message':'You have joined room ' + cD.room[socket.id] + ' and your client name is ' + displayName + '.',
-               'userName':cD.userName[ socket.id]}));
+               'userName':cD.userName[ socket.id], 'nickName':nickName}));
             
             // Set this user as the host for this room.
             cD.hostID[ cD.room[ socket.id]] = socket.id;
@@ -489,7 +491,8 @@ io.on('connection', function(socket) {
       }
    });
    
-   // This "disconnect" event is fired by the server.
+   // This "disconnect" event is fired by the server when a socket is disconnected. 
+   // (can be triggered by socket.disconnect() in this file or hostAndClient.js, or when a client reloads their page).
    socket.on('disconnect', function() {
       if (cD.userName[ socket.id]) {
          
