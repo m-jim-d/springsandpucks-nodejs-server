@@ -114,10 +114,7 @@ function setDisplayName( clientID, mode) {
 }
 
 function connectionInfo() {
-   let infoStr = 'sockets=' + io.engine.clientsCount + ', connection acts=' + cD.connectionIndex + 
-                    ', names=' + Object.keys( cD.userName).length + ', nick names=' + Object.keys( cD.nickName).length + 
-                    ', team names=' + Object.keys( cD.teamName).length;
-   return infoStr;
+   return 'sockets=' + io.engine.clientsCount + ', connection acts=' + cD.connectionIndex + ', names=' + Object.keys( cD.userName).length + ', nick names=' + Object.keys( cD.nickName).length + ', team names=' + Object.keys( cD.teamName).length;
 }
 
 function nameReport( names, socket_id_target) {
@@ -218,7 +215,7 @@ function disconnectClientsInOneRoom( roomName) {
       // apply to users in the room, but not the room host...
       if ( (cD.room[ socket_id] == roomName) && (userName != cD.userName[ cD.hostID[ roomName]]) ) {
          let pars = {'name':userName, 'originator':'host'};
-         io.to( socket_id).emit('disconnectByServer', pars);
+         io.to( socket_id).emit('disconnectByServer', JSON.stringify( pars));
       }
    }
 }
@@ -236,7 +233,7 @@ http.listen( port, function() {
    console.log('listening on *:' + port);
 });
 
-io.on('connection', function( socket) {
+io.on('connection', function(socket) {
    // Showing the usage of the auth object if it is sent in the connection attempt from the client.
    console.log("");
    console.log("Connection starting...");
@@ -279,14 +276,14 @@ io.on('connection', function( socket) {
    
    // Tell the new user their network name. Note there is no listener for this on the host.
    if (socket.id != cD.hostID[ cD.room[ socket.id]]) {
-      io.to(socket.id).emit('your name is', {'name':cD.userName[socket.id]} );
+      io.to(socket.id).emit('your name is', JSON.stringify({'name':cD.userName[socket.id]}));
    }
    
    // Now set up the various listeners. I know this seems a little odd, but these listeners
    // need to be defined each time this connection event fires, i.e. for each socket.
    
    // Echo test...
-   socket.on('echo-from-Client-to-Server', function( msg) {
+   socket.on('echo-from-Client-to-Server', function(msg) {
       if (msg == 'server') {
          // This bounces off the SERVER and goes right back to the client.
          io.to(socket.id).emit('echo-from-Server-to-Client', 'server');
@@ -298,7 +295,7 @@ io.on('connection', function( socket) {
       }
       
    });
-   socket.on('echo-from-Host-to-Server', function( msg) {
+   socket.on('echo-from-Host-to-Server', function(msg) {
       var socket_id = msg;
       // Now that this has come back from the HOST, complete the trip and send this to the originating client.
       io.to(socket_id).emit('echo-from-Server-to-Client', 'host');
@@ -360,7 +357,7 @@ io.on('connection', function( socket) {
             socket.emit('chat message', disconnectNotice);
             console.log( disconnectNotice + idString);
             let pars = {'name':cD.userName[ socket.id], 'originator':'server'};
-            io.to( socket.id).emit('disconnectByServer', pars);
+            io.to( socket.id).emit('disconnectByServer', JSON.stringify( pars));
          }
          
       }, t_min * 60 * 1000);
@@ -369,7 +366,7 @@ io.on('connection', function( socket) {
 
    // Broadcast the incoming chat message to everyone in the sender's room. Allow some special text strings
    // to trigger actions on the server.
-   socket.on('chat message', function( msg) {
+   socket.on('chat message', function(msg) {
       setTimer("restart");
       if (msg == "dcir") {
          if (socket.id == cD.hostID[ cD.room[ socket.id]]) {
@@ -395,18 +392,20 @@ io.on('connection', function( socket) {
    });
    
    // Broadcast the incoming chat message to everyone in the sender's room, except the sender.
-   socket.on('chat message but not me', function( msg) {
+   socket.on('chat message but not me', function(msg) {
       // Emit to everyone in the sender's room except the sender.
       socket.to( cD.room[ socket.id]).emit('chat message',  msg + " (" + setDisplayName(socket.id, 'comma') + ")");
    });
    
    
    // Signaling in support of WebRTC.
-   socket.on('signaling message', function( msg) {      
-      if (msg.to == 'host') {
+   socket.on('signaling message', function(msg) {
+      var signal_message = JSON.parse(msg);
+      
+      if (signal_message.to == 'host') {
          var target = cD.hostID[ cD.room[ socket.id]];
       } else {
-         var target = cD.id[ msg.to];
+         var target = cD.id[ signal_message.to];
       }
       
       // Relay the message (emit) to the target user.
@@ -414,31 +413,29 @@ io.on('connection', function( socket) {
    });
    
    // General control message (note: same structure as the above handler for signaling messages)
-   socket.on('control message', function( msg) {      
+   socket.on('control message', function(msg) {
+      var control_message = JSON.parse( msg);
+      
       // If a targeted chat message, add string that identifies the sender.
-      if (msg.data.displayThis) {
-         msg.data.displayThis += " (" + setDisplayName( socket.id, 'comma') + ")";
+      if (control_message.data.displayThis) {
+         control_message.data.displayThis += " (" + setDisplayName( socket.id, 'comma') + ")";
+         msg = JSON.stringify( control_message);
       }
       
       // to the host only
-      if (msg.to == 'host') {
+      if (control_message.to == 'host') {
          var target = cD.hostID[ cD.room[ socket.id]];
       // to everyone in the room   
-      } else if (msg.to == 'room') {
+      } else if (control_message.to == 'room') {
          var target = cD.room[ socket.id];
       // to everyone in the room except the sender   
-      } else if (msg.to == 'roomNoSender') {
+      } else if (control_message.to == 'roomNoSender') {
          var target = cD.room[ socket.id];
          socket.to( target).emit('control message', msg);
          return;
       // to this particular user
       } else {
-         // Check whether specified as nick name.
-         let nickName_id = null;
-         for (let socket_id in cD.userName) {
-            if (cD.nickName[ socket_id] && (cD.nickName[ socket_id] == msg.to)) nickName_id = socket_id;
-         }
-         var target = (nickName_id) ? nickName_id : cD.id[ msg.to];
+         var target = cD.id[ control_message.to];
       }
       
       // Relay the message (emit) to the target user(s).
@@ -451,7 +448,7 @@ io.on('connection', function( socket) {
    });
    
    // Send mouse and keyboard states to the host.
-   socket.on('client-mK-event', function( msg) {
+   socket.on('client-mK-event', function(msg) {
       // Determine the id of the room-host for this client. Then send data to the host for that room.
       // socket.id --> room --> room host.
       var hostID = cD.hostID[ cD.room[ socket.id]];
@@ -461,11 +458,13 @@ io.on('connection', function( socket) {
    });
    
    // After connecting, the 'connect' listener, on client or host, sends a message to 'roomJoin' listener on the server.
-   socket.on('roomJoin', function( msg) {
-      var roomName = setDefault( msg.roomName, null);
-      var requestStream = setDefault( msg.requestStream, false);
-      var player = setDefault( msg.player, null);
-      var hostOrClient = setDefault( msg.hostOrClient, 'client');
+   socket.on('roomJoin', function(msg) {
+      var msgParsed = JSON.parse( msg);
+      
+      var roomName = setDefault( msgParsed.roomName, null);
+      var requestStream = setDefault( msgParsed.requestStream, false);
+      var player = setDefault( msgParsed.player, null);
+      var hostOrClient = setDefault( msgParsed.hostOrClient, 'client');
       
       var nickName = cD.nickName[ socket.id];
       var teamName = cD.teamName[ socket.id];
@@ -479,8 +478,9 @@ io.on('connection', function( socket) {
             console.log('Room ' + roomName + ' joined by ' + cD.userName[ socket.id] + '.');
             
             // Send message to the individual client that is joining the room.
-            io.to(socket.id).emit('room-joining-message', {'message':'You have joined room ' + cD.room[socket.id] + ' and your client name is '+ displayName +'.', 
-                                                           'userName':cD.userName[ socket.id]} );
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'You have joined room ' + cD.room[socket.id] + ' and your client name is '+ displayName +'.', 
+               'userName':cD.userName[ socket.id]}));
             
             // Message to the room host.
             // Give the host the name of the new network user so it can create a new game client. 
@@ -489,22 +489,24 @@ io.on('connection', function( socket) {
             // Generally, the host sets its own identity directly, then listens (room-joining-message) 
             // to the server for any incrementation of its intended nickname.
             io.to( cD.hostID[ roomName]).emit('new-game-client', 
-               {'clientName':cD.userName[socket.id], 'requestStream':requestStream, 'player':player, 'nickName':nickName, 'teamName':teamName} );
+               JSON.stringify({'clientName':cD.userName[socket.id], 'requestStream':requestStream, 'player':player, 'nickName':nickName, 'teamName':teamName}));
             
             // Chat message to the host.
             io.to( cD.hostID[ roomName]).emit('chat message', displayName + ' is a new client in room ' + roomName + '.');
             
          } else {
-            io.to(socket.id).emit('room-joining-message', {'message':'Sorry, there is no host yet for room ' + roomName + '.',
-                                                           'userName':cD.userName[ socket.id]} );
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'Sorry, there is no host yet for room ' + roomName + '.',
+               'userName':cD.userName[ socket.id]}));
          }
       
       } else if (hostOrClient == 'host') {
          // Should check if the room already has a host.
          if (cD.hostID[ roomName]) {
             // Send warning to the client that is attempting to host.
-            io.to(socket.id).emit('room-joining-message', {'message':'Sorry, there is already a host for room ' + roomName + '.',
-                                                           'userName':cD.userName[ socket.id]} );
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'Sorry, there is already a host for room ' + roomName + '.',
+               'userName':cD.userName[ socket.id]}));
             
          } else {
             socket.join( roomName);
@@ -512,16 +514,18 @@ io.on('connection', function( socket) {
             console.log('Room ' + roomName + ' joined by ' + cD.userName[ socket.id] + '.');
             
             // General you-have-joined-the-room message. This is where the host gets its incremented nickname.
-            io.to(socket.id).emit('room-joining-message', {'message':'You have joined room ' + cD.room[socket.id] + ' and your client name is ' + displayName + '.',
-                                                           'userName':cD.userName[ socket.id], 'nickName':nickName} );
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'You have joined room ' + cD.room[socket.id] + ' and your client name is ' + displayName + '.',
+               'userName':cD.userName[ socket.id], 'nickName':nickName}));
             
             // Set this user as the host for this room.
             cD.hostID[ cD.room[ socket.id]] = socket.id;
             console.log('User '+ displayName +' identified as host for room '+ cD.room[ socket.id] + '.');
             
             // And oh-by-the-way "you are the host" message.
-            io.to(socket.id).emit('room-joining-message', {'message':'You are the host of room ' + cD.room[ socket.id] + '.',
-                                                           'userName':cD.userName[ socket.id]} );
+            io.to(socket.id).emit('room-joining-message', 
+               JSON.stringify({'message':'You are the host of room ' + cD.room[ socket.id] + '.',
+               'userName':cD.userName[ socket.id]}));
          }
       }
    });
@@ -548,19 +552,19 @@ io.on('connection', function( socket) {
       }
    });
    
-   socket.on('clientDisconnectByHost', function( msg) {
+   socket.on('clientDisconnectByHost', function(msg) {
       let clientName = msg;
       let clientID = cD.id[ clientName];
       
       // Send disconnect message to the client.
       let pars = {'name':clientName, 'originator':'host'};
-      io.to( clientID).emit('disconnectByServer', pars);
+      io.to( clientID).emit('disconnectByServer', JSON.stringify( pars));
       
       // Don't do the following. It will disconnect the host socket. Not what we want here!
       //socket.disconnect();
    });
    
-   socket.on('okDisconnectMe', function( msg) {
+   socket.on('okDisconnectMe', function(msg) {
       // This event indicates that the non-host client has gotten the clientDisconnectByHost message (see above) and
       // agrees to go peacefully.
       var clientName = msg;
