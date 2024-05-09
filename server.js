@@ -261,15 +261,15 @@ io.on('connection', function( socket) {
       // Re-connection happens only when the client is starting a stream or when the P2P connection makes a second attempt.
       var user_name = socket.handshake.auth['currentName'];
    }
-   var nick_name = socket.handshake.auth['nickName'];
+   var nick_name = setDefault( socket.handshake.auth['nickName'], null);
     // Differentiate nicknames in use by multiple clients by appending the user number (slice off the u).
    if (nick_name && nameInUse( nick_name, cD.nickName)) nick_name += user_name.slice(1);
-   var team_name = socket.handshake.auth['teamName'];
+   var team_name = setDefault( socket.handshake.auth['teamName'], null);
    
    // Two maps
    cD.userName[ socket.id] = user_name;
-   if (nick_name) cD.nickName[ socket.id] = nick_name;
-   if (team_name) cD.teamName[ socket.id] = team_name;
+   cD.nickName[ socket.id] = nick_name;
+   cD.teamName[ socket.id] = team_name;
    cD.id[ user_name] = socket.id;
    
    console.log('');
