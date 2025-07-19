@@ -1,5 +1,7 @@
 /node_modules
 /old files
+/ssl
+
 publish.bat
 package-lock.json
 node-server.zip
@@ -8,6 +10,4 @@ package.json.html
 package-new.json
 server.js.html
 timeleft.bat
-
-
-
+heroku-pet.code-workspace

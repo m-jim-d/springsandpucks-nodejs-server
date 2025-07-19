@@ -29,7 +29,7 @@ const app = require('express')();
 const http = require('http').Server(app);
 let options = { 'cors':{'origin':'*', 'credentials':false} };
 const io = require('socket.io')(http, options);
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000; // 3000 or 3443
 
 app.get('/', function(req, res) {
    // In a browser, if you set the URL to localhost:3000, you'll get this page:
@@ -232,7 +232,7 @@ function disconnectClientsInAllRooms() {
 
 // Socket.io stuff...
 
-http.listen( port, function() {
+http.listen( port, '0.0.0.0', function() {
    console.log('listening on *:' + port);
 });
 
