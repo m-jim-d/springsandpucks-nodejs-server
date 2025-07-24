@@ -1,14 +1,25 @@
+# Dependencies
 /node_modules
-/old files
-/ssl
 
+# Local development
+/ssl
+/old files
+*.log
+
+# Personal/deployment files
 publish.bat
+timeleft.bat
+notes_jdm.txt
+heroku-pet.code-workspace
+
+# Build artifacts
 package-lock.json
 node-server.zip
-notes_jdm.txt
-package.json.html
-package-new.json
-server.js.html
+
+# Development versions
 server_old.js
-timeleft.bat
-heroku-pet.code-workspace
+server-mini.js
+package-new.json
+
+# Generated HTML files
+*.html
