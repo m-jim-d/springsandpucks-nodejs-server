@@ -101,6 +101,9 @@ Perfect for local multiplayer gaming:
 
 This server supports the Springs & Pucks multiplayer physics simulation. For the main game client, visit [triquence.org](https://triquence.org).
 
+The host client is in index.html at triquence.org. Additional players are added using the client.html page. These two pages can also be viewed in the corresponding repository for the triquence.org site:
+https://github.com/m-jim-d/springsandpucks.git
+
 ## License
 
 MIT License - see the license header in `server.js` for full details.
