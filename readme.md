@@ -1,6 +1,6 @@
 # Springs & Pucks Node.js Server
 
-A universal Socket.io server that supports both local HTTPS development and Heroku HTTP production deployment. This server enables real-time multiplayer functionality for the Springs & Pucks physics simulation game.
+A universal Socket.io server that supports both local HTTPS development and Heroku HTTP production deployment. This server enables real-time multiplayer functionality for the Springs & Pucks physics-simulation games.
 
 ## Features
 
