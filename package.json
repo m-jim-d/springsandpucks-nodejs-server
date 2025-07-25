@@ -1,5 +1,5 @@
 {
-  "name": "socket.io for S&P",
+  "name": "socket-io_for_springs-and-pucks",
   "version": "1.0.0",
   "description": "S&P: node.js with socket.io.",
   "engines": {},

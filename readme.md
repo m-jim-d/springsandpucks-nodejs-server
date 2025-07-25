@@ -2,9 +2,12 @@
 
 A universal Socket.io server that supports both local HTTPS development and Heroku HTTP production deployment. This server enables real-time multiplayer functionality for the Springs & Pucks physics-simulation games.
 
-This server supports the Springs & Pucks multiplayer physics simulation. For the main game client, visit [triquence.org](https://triquence.org).
+This server supports the Springs & Pucks multiplayer physics simulation. 
 
-The host client is in index.html at triquence.org. Additional players are added using the client.html page. These two pages can also be viewed in the corresponding repository for the triquence.org site:
+For the game clients, visit [triquence.org](https://triquence.org). The host
+client is in index.html at triquence.org. Additional players are added using the
+client.html page. These two pages can also be viewed in the corresponding
+repository for the triquence.org site:
 https://github.com/m-jim-d/springsandpucks.git
 
 ## Features
